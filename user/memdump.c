@@ -4,9 +4,7 @@
 
 void memdump(char *fmt, char *data);
 
-int
-main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   if(argc == 1){
     printf("Example 1:\n");
     int a[2] = { 61810, 2025 };
@@ -60,6 +58,52 @@ main(int argc, char *argv[])
 void
 memdump(char *fmt, char *data)
 {
-  // Your code here.
+  char* ptr = data;
+  if(ptr == 0){
+    printf("NULL\n");
+    exit(1);
+  }
+  for(int i =0; fmt[i]; i++) {
+    switch (fmt[i])
+    {
+    case 'i': {
+      int j = *(int*)ptr;
+      printf("%d\n", j);
+      ptr += 4;
+      break;
+    }
+    case 'p': {
+      long j = *(long*)ptr;
+      printf("%lx\n", j);
+      ptr += 8;
+      break;
+    }
+    case 'h': {
+      short j = *(short*)ptr;
+      printf("%d\n", j);
+      ptr += 2;
+      break;
+    }
+    case 'c': {
+      char j = *(char*)ptr;
+      printf("%c\n", j);
+      ptr += 1;
+      break;
+    }
+    case 's': {
+      char *stringg = *(char**)ptr;
+      printf("%s\n", stringg);
+      ptr += 8;
+      break;
+    }
+    case 'S': {
+      printf("%s\n", ptr);
+      return;
+    }
+    
+    default:
+      break;
+    }
+  }
 
 }
