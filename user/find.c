@@ -3,8 +3,9 @@
 #include "user/user.h"
 #include "kernel/fs.h"
 #include "kernel/fcntl.h"
+#include "kernel/param.h"
 
-void find(char *path, char *target) {
+void find(char *path, char *target, char **exec_args) {
     // Open the directory at 'path'
     int fd;
     struct stat st;
@@ -35,15 +36,31 @@ void find(char *path, char *target) {
         memmove(p, de.name, DIRSIZ);
         p[DIRSIZ] = 0;
         if(stat(buf, &st) < 0){
-            fprintf(2, "find: cannot stat %s\n", buf);
+            fprintf(2, "\nError! find: cannot stat %s\n", buf);
             continue;
         }
         if(st.type == T_FILE){
-            // For each entry in the directory:
-            // If entry is a file:
-            // If entry name matches 'target', print full path
             if(strcmp(de.name, target) == 0){
-                printf("%s\n", buf);
+                if(exec_args == 0) {
+                    printf("%s\n", buf);
+                } else {
+                    int pid = fork();
+                    if(pid == 0){
+                        char *args[MAXARG];
+                        int i = 0;
+                        while(exec_args[i] != 0){
+                            args[i] = exec_args[i];
+                            i++;
+                        }
+                        args[i] = buf;
+                        args[i+1] = 0;
+                        exec(args[0], args);
+                        fprintf(2, "\nError! find: exec %s failed\n", args[0]);
+                        exit(1);
+                    } else {
+                        wait(0);
+                    }
+                }
             }
         } else if(st.type == T_DIR && strcmp(de.name, ".") != 0 && strcmp(de.name, "..") != 0){
             // If entry is a directory and not "." or "..":
@@ -55,16 +72,45 @@ void find(char *path, char *target) {
             memmove(buf2 + len + 1, de.name, DIRSIZ);
             buf2[len + 1 + DIRSIZ] = 0;
             // Recursively call find(new path, target)
-            find(buf2, target);
+            find(buf2, target, exec_args);
         }
     }
 }
 
 int main(int argc, char *argv[]) {
-    if(argc != 3){
-        fprintf(2, "\nError! Correct usage: find <path> <filename>\n");
+    if(argc < 3){
+        fprintf(2, "\nError! Correct usage: find <path> <filename> <flags e.g. -exec command ...>\n");
         exit(1);
     }
-    find(argv[1], argv[2]);
+
+    // Check for -exec
+    int exec_index = -1;
+    for(int i = 3; i < argc; i++){
+        if(strcmp(argv[i], "-exec") == 0){
+            exec_index = i;
+            break;
+        }
+    }
+
+    if(exec_index == -1){
+        // No -exec, normal find
+        find(argv[1], argv[2], 0);
+    } else {
+        // -exec found, collect command arguments
+        // exec_args starts after "-exec"
+        char *exec_args[MAXARG];
+        int n = 0;
+        for(int i = exec_index + 1; i < argc; i++){
+            exec_args[n++] = argv[i];
+        }
+        if (exec_args[n-1] == 0) {
+            fprintf(2, "\nError! find: -exec requires a command\n");
+            exit(1);
+        }
+        exec_args[n] = 0; // null-terminate
+
+        // Call your find with exec_args (you'll need to update find to accept them)
+        find(argv[1], argv[2], exec_args);
+    }
     exit(0);
 }
