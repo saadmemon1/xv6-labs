@@ -142,9 +142,10 @@ runcmd(struct cmd *cmd)
 int
 getcmd(char *buf, int nbuf)
 {
-  if(open("console", O_RDONLY) >= 0){
+  struct stat st;
+  fstat(0, &st);
+  if(st.type == T_DEVICE) // Only print prompt if input is from console
     write(2, "$ ", 2);
-  }
   memset(buf, 0, nbuf);
   gets(buf, nbuf);
   if(strchr(buf, '\t')) {
@@ -191,10 +192,13 @@ main(void)
       cmd[strlen(cmd)-1] = 0;  // chop \n
       if(chdir(cmd+3) < 0)
         fprintf(2, "cannot cd %s\n", cmd+3);
-    } else if (strcmp(cmd, "wait") == 0) {
+    } else if (strcmp(cmd, "wait\n") == 0) {
       wait(0);
-    }
-     else {
+    } else if (strcmp(cmd, "history\n") == 0) {
+      for(int i = 0; i < history_i && i < HIST_SIZE; i++)
+        printf("%s", history[i]);
+      continue;
+    } else {
       if(fork1() == 0)
         runcmd(parsecmd(cmd));
       wait(0);
@@ -202,12 +206,6 @@ main(void)
 
     if(buf[0] != 0 && strcmp(cmd, "history\n") != 0)
       strcpy(history[history_i++ % HIST_SIZE], buf);
-
-    if(strcmp(cmd, "history\n") == 0) {
-      for(int i = 0; i < history_i && i < HIST_SIZE; i++)
-        printf("%s", history[i]);
-      continue;
-    }
   }
   exit(0);
 }
