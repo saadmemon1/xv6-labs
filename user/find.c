@@ -5,6 +5,46 @@
 #include "kernel/fcntl.h"
 #include "kernel/param.h"
 
+// Imported from grep.c for regex matching
+int
+match(char *re, char *text)
+{
+  if(re[0] == '^')
+    return matchhere(re+1, text);
+  do{  // must look at empty string
+    if(matchhere(re, text))
+      return 1;
+  }while(*text++ != '\0');
+  return 0;
+}
+
+// matchhere: search for re at beginning of text
+int matchhere(char *re, char *text)
+{
+  if(re[0] == '\0')
+    return 1;
+  if(re[1] == '*')
+    return matchstar(re[0], re+2, text);
+  if(re[0] == '$' && re[1] == '\0')
+    return *text == '\0';
+  if(*text!='\0' && (re[0]=='.' || re[0]==*text))
+    return matchhere(re+1, text+1);
+  return 0;
+}
+
+// matchstar: search for c*re at beginning of text
+int matchstar(int c, char *re, char *text)
+{
+  do{  // a * matches zero or more instances
+    if(matchhere(re, text))
+      return 1;
+  }while(*text!='\0' && (*text++==c || c=='.'));
+  return 0;
+}
+
+
+
+
 void find(char *path, char *target, char **exec_args) {
     // Open the directory at 'path'
     int fd;
@@ -40,7 +80,7 @@ void find(char *path, char *target, char **exec_args) {
             continue;
         }
         if(st.type == T_FILE){
-            if(strcmp(de.name, target) == 0){
+            if(match(target, de.name)){
                 if(exec_args == 0) {
                     printf("%s\n", buf);
                 } else {
@@ -79,7 +119,7 @@ void find(char *path, char *target, char **exec_args) {
 
 int main(int argc, char *argv[]) {
     if(argc < 3){
-        fprintf(2, "\nError! Correct usage: find <path> <filename> <flags e.g. -exec command ...>\n");
+        fprintf(2, "\nError! Correct usage: find <path> <filename> <optional flags e.g. -exec command ...>\n");
         exit(1);
     }
 
@@ -93,11 +133,10 @@ int main(int argc, char *argv[]) {
     }
 
     if(exec_index == -1){
-        // No -exec, normal find
+        // No -exec
         find(argv[1], argv[2], 0);
     } else {
-        // -exec found, collect command arguments
-        // exec_args starts after "-exec"
+        // -exec found
         char *exec_args[MAXARG];
         int n = 0;
         for(int i = exec_index + 1; i < argc; i++){
@@ -107,9 +146,8 @@ int main(int argc, char *argv[]) {
             fprintf(2, "\nError! find: -exec requires a command\n");
             exit(1);
         }
-        exec_args[n] = 0; // null-terminate
+        exec_args[n] = 0;
 
-        // Call your find with exec_args (you'll need to update find to accept them)
         find(argv[1], argv[2], exec_args);
     }
     exit(0);
