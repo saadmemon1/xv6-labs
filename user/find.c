@@ -6,6 +6,11 @@
 #include "kernel/param.h"
 
 // Imported from grep.c for regex matching
+
+int match(char*, char*);
+int matchhere(char*, char*);
+int matchstar(int, char*, char*);
+
 int
 match(char *re, char *text)
 {

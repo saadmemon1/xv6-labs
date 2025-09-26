@@ -4,6 +4,10 @@
 #include "user/user.h"
 #include "kernel/fcntl.h"
 
+#include "kernel/stat.h"
+#include "kernel/fs.h"
+#include "kernel/param.h"
+
 // Parsed command representation
 #define EXEC  1
 #define REDIR 2
@@ -12,6 +16,7 @@
 #define BACK  5
 
 #define MAXARGS 10
+#define HIST_SIZE 20
 
 struct cmd {
   int type;
@@ -48,6 +53,9 @@ struct backcmd {
   int type;
   struct cmd *cmd;
 };
+
+char history[HIST_SIZE][100];
+int history_i = 0;
 
 int fork1(void);  // Fork but panics on failure.
 void panic(char*);
@@ -134,9 +142,24 @@ runcmd(struct cmd *cmd)
 int
 getcmd(char *buf, int nbuf)
 {
-  write(2, "$ ", 2);
+  if(open("console", O_RDONLY) >= 0){
+    write(2, "$ ", 2);
+  }
   memset(buf, 0, nbuf);
   gets(buf, nbuf);
+  if(strchr(buf, '\t')) {
+    int fd = open(".", O_RDONLY);
+    struct dirent de;
+    printf("\n");
+    while(read(fd, &de, sizeof(de)) == sizeof(de)) {
+      if(de.inum == 0)
+        continue;
+      printf("%s\n", de.name);
+      }
+    close(fd);
+    char *tab = strchr(buf, '\t');
+    if(tab) *tab = ' ';
+  }
   if(buf[0] == 0) // EOF
     return -1;
   return 0;
@@ -168,10 +191,22 @@ main(void)
       cmd[strlen(cmd)-1] = 0;  // chop \n
       if(chdir(cmd+3) < 0)
         fprintf(2, "cannot cd %s\n", cmd+3);
-    } else {
+    } else if (strcmp(cmd, "wait") == 0) {
+      wait(0);
+    }
+     else {
       if(fork1() == 0)
         runcmd(parsecmd(cmd));
       wait(0);
+    }
+
+    if(buf[0] != 0 && strcmp(cmd, "history\n") != 0)
+      strcpy(history[history_i++ % HIST_SIZE], buf);
+
+    if(strcmp(cmd, "history\n") == 0) {
+      for(int i = 0; i < history_i && i < HIST_SIZE; i++)
+        printf("%s", history[i]);
+      continue;
     }
   }
   exit(0);
