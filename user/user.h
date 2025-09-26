@@ -1,5 +1,5 @@
 #define SBRK_ERROR ((char *)-1)
-
+typedef unsigned int uint;
 struct stat;
 
 // system calls
