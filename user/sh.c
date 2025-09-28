@@ -3,7 +3,6 @@
 #include "kernel/types.h"
 #include "user/user.h"
 #include "kernel/fcntl.h"
-
 #include "kernel/stat.h"
 #include "kernel/fs.h"
 #include "kernel/param.h"
@@ -192,9 +191,18 @@ main(void)
       cmd[strlen(cmd)-1] = 0;  // chop \n
       if(chdir(cmd+3) < 0)
         fprintf(2, "cannot cd %s\n", cmd+3);
-    } else if (strcmp(cmd, "wait\n") == 0) {
-      wait(0);
-    } else if (strcmp(cmd, "history\n") == 0) {
+      continue;
+    } 
+    // else if (strcmp(cmd, "wait\n") == 0) {
+    //   wait(0);
+    // }
+    else if (cmd[0] == 'w' && cmd[1] == 'a' && cmd[2] == 'i' && cmd[3] == 't' &&
+           (cmd[4] == '\n' || cmd[4] == 0 || cmd[4] == ' ')) {
+      int st;
+      while (wait(&st) >= 0) { } // drain
+      continue;
+    } 
+    else if (strcmp(cmd, "history\n") == 0) {
       for(int i = 0; i < history_i && i < HIST_SIZE; i++)
         printf("%s", history[i]);
       continue;
