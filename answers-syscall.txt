@@ -1,0 +1,35 @@
+Looking at the backtrace output, which function called syscall?
+    usertrap at kernel/trap.c:68 called syscall(). I determined this from the following backtrace output:
+    #0 syscall () at kernel/syscall.c:133
+    #1 0x000000008001aa6 in usertrap () at kernel/trap.c:68
+    #2 0x0000003ffffff09c in ?? ()
+
+What is the value of p->trapframe->a7 and what does that value represent? 
+(Hint: look at user/init.c, the first user program xv6 starts, and its compiled assembly user/init.asm.)
+
+    It is the system call number requested by the user process e.g. in user/init.asm, before each `ecall` instruction, the a7 register is set to a specific value using `li a7, SYS_x` where x can be open, exec, kill etc. 
+    This value tells the kernel which system call to execute (e.g. fork, exit, wait, etc.)
+
+What was the previous mode that the CPU was in?
+
+    The value of sstatus is 0x200000022. The SPP bit in sstatus indicates the previous mode. 
+    If SPP is set (bit 8), the previous mode was supervisor; if it is clear, the previous mode was user. (clarification for personal understanding)
+    Here, SPP is clear, so the previous mode was user mode.
+
+Write down the assembly instruction the kernel is panicing at. Which register corresponds to the variable num?
+    If we look at kernel.asm, this is the output:
+    num = * (int *) 0;
+        80001cf8:	00002683          	lw	a3,0(zero) # 0 <_entry-0x80000000>
+    We can clearly tell that lw	a3,0(zero) is the instruction the kernel is panicing at. a3 is the register corresponding to our variable num.
+
+
+Why does the kernel crash? Hint: look at figure 3-3 in the text; is address 0 mapped in the kernel address space? Is that confirmed by the value in scause above? (See description of scause in RISC-V privileged instructions)
+
+    The compiler generates an instruction that loads a value from address 0 into a register. In RISC-V assembly, this is: lw a1, 0(zero)
+    This matches the instruction found earlier at the faulting address in kernel.asm.
+    The kernel crashes because it tries to read from address 0, which is not mapped in the kernel's virtual address space.
+
+
+What is the name of the process that was running when the kernel paniced? What is its process id (pid)?
+
+    Name is "init", PID is 1.
