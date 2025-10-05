@@ -111,6 +111,7 @@ allocproc(void)
 {
   struct proc *p;
 
+  
   for(p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
     if(p->state == UNUSED) {
@@ -120,10 +121,11 @@ allocproc(void)
     }
   }
   return 0;
-
-found:
+  
+  found:
   p->pid = allocpid();
   p->state = USED;
+  p->sandbox_mask = 0; // by default no sandboxing
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -260,11 +262,14 @@ kfork(void)
   struct proc *np;
   struct proc *p = myproc();
 
+  
   // Allocate process.
   if((np = allocproc()) == 0){
     return -1;
   }
-
+  
+  np->sandbox_mask = p->sandbox_mask; // inherit sandbox mask from parent
+  
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
     freeproc(np);
