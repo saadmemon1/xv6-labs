@@ -131,6 +131,11 @@ found:
     release(&p->lock);
     return 0;
   }
+  
+  // Allocate a page for usyscall page
+  p->usyscall_page = kalloc();
+  if(p->usyscall_page) 
+    ((struct usyscall*)p->usyscall_page)->pid = p->pid;
 
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
@@ -139,6 +144,8 @@ found:
     release(&p->lock);
     return 0;
   }
+
+
 
   // Set up new context to start executing at forkret,
   // which returns to user space.
@@ -160,6 +167,11 @@ freeproc(struct proc *p)
   p->trapframe = 0;
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
+
+  if(p->usyscall_page)
+    kfree(p->usyscall_page);
+  p->usyscall_page = 0; // free usyscall page
+
   p->pagetable = 0;
   p->sz = 0;
   p->pid = 0;
@@ -182,6 +194,12 @@ proc_pagetable(struct proc *p)
   pagetable = uvmcreate();
   if(pagetable == 0)
     return 0;
+
+  // map the usyscall page with PTE_U | PTE_R permissions
+  if(mappages(pagetable, USYSCALL, PGSIZE, (uint64)p->usyscall_page, PTE_U | PTE_R) < 0){
+    uvmfree(pagetable, 0);
+    return 0;
+  }
 
   // map the trampoline code (for system call return)
   // at the highest user virtual address.
@@ -210,6 +228,7 @@ proc_pagetable(struct proc *p)
 void
 proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
+  uvmunmap(pagetable, USYSCALL, 1, 0);
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
   uvmfree(pagetable, sz);
@@ -264,6 +283,11 @@ kfork(void)
   if((np = allocproc()) == 0){
     return -1;
   }
+
+  np->usyscall_page = kalloc();
+  if(np->usyscall_page)
+    ((struct usyscall*)np->usyscall_page)->pid = np->pid; // allocate usyscall page for child
+  
 
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
