@@ -142,12 +142,35 @@ walkaddr(pagetable_t pagetable, uint64 va)
 
 
 #if defined(LAB_PGTBL) || defined(SOL_MMAP) || defined(SOL_COW)
+void vmprint_rec(pagetable_t pagetable, int level, uint64 va_prefix) {
+  for (int i = 0; i < 512; i++) {
+    pte_t pte = pagetable[i];
+    if (pte & PTE_V) {
+      // Indentation
+      for (int l = 2; l > level; l--)
+        printf(" ..");
+ 
+      uint64 va = va_prefix | ((uint64)i << PXSHIFT(level));
+
+      printf("0x%lx: pte 0x%lx pa 0x%lx\n", va, pte, PTE2PA(pte));
+      
+      // Recurse into the next level if this is not a leaf PTE
+      if ((pte & (PTE_R | PTE_W | PTE_X)) == 0) {
+        if (level > 0) {
+          vmprint_rec((pagetable_t)PTE2PA(pte), level - 1, va);
+        }
+      }
+    }
+  }
+}
+
 void
 vmprint(pagetable_t pagetable) {
-  // your code here
+  printf("page table %p\n", pagetable);
+  // Start recursion at the top level (level 2).
+  vmprint_rec(pagetable, 2, 0);
 }
 #endif
-
 
 
 // add a mapping to the kernel page table.
