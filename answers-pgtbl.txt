@@ -1,0 +1,51 @@
+General format of the output is va (virtual address) followed by pte (raw page table entry value) and then pa (physical address if mapped) and then perm (permission bits i.e. low 8 bits of the PTE)
+
+Permission bits (from riscv.h):
+
+#define PTE_V (1L << 0) // valid
+#define PTE_R (1L << 1)
+#define PTE_W (1L << 2)
+#define PTE_X (1L << 3)
+#define PTE_U (1L << 4) // user can access
+
+0x01: V (Valid)
+0x02: R (Readable)
+0x04: W (Writable)
+0x08: X (Executable)
+0x10: U (User)
+
+
+`va 0x0 pte 0x21FC885B pa 0x87F22000 perm 0x5B`
+
+va 0x0: Virtual address 0x0
+pte 0x21FC885B: Raw PTE
+pa 0x87F22000: Maps to physical address 0x87F22000
+perm 0x5B (0101 1011):
+0x01: Valid
+0x02: Read
+0x08: Execute
+0x10: User
+
+This page is mapped, valid, readable, executable and user-accessible
+
+`va 0x2000 pte 0x21FC7817 pa 0x87F1E000 perm 0x17`
+perm 0x17 (0001 0111):
+0x01: Valid
+0x02: Read
+0x04: Write
+0x10: User
+Logically: Mapped, valid, readable, writable, user-accessible.
+
+`va 0x3000 pte 0x21FC7407 pa 0x87F1D000 perm 0x7`
+perm 0x7 (0000 0111):
+0x01: Valid
+0x02: Read
+0x04: Write
+Logically: Mapped, valid, readable, writable, but not user-accessible or executable.
+
+Unmapped Entries
+
+`va 0x5000 pte 0x0 pa 0x0 perm 0x0`
+perm 0x0:
+Not valid, not mapped.
+Logically: No mapping for this virtual address.
