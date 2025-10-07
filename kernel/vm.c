@@ -7,6 +7,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "fs.h"
+#include "vm.h"
 
 /*
  * the kernel's page table.
@@ -145,14 +146,17 @@ walkaddr(pagetable_t pagetable, uint64 va)
 void vmprint_rec(pagetable_t pagetable, int level, uint64 va_prefix) {
   for (int i = 0; i < 512; i++) {
     pte_t pte = pagetable[i];
+
+
     if (pte & PTE_V) {
-      // Indentation
-      for (int l = 2; l > level; l--)
+      // Add a leading space before the indentation.
+      for(int l = 0; l < (3 - level); l++)
         printf(" ..");
  
       uint64 va = va_prefix | ((uint64)i << PXSHIFT(level));
 
-      printf("0x%lx: pte 0x%lx pa 0x%lx\n", va, pte, PTE2PA(pte));
+      printf("%p: pte %p pa %p\n", (void *)va, (void *)pte, (void *)PTE2PA(pte));
+
       
       // Recurse into the next level if this is not a leaf PTE
       if ((pte & (PTE_R | PTE_W | PTE_X)) == 0) {
@@ -166,7 +170,7 @@ void vmprint_rec(pagetable_t pagetable, int level, uint64 va_prefix) {
 
 void
 vmprint(pagetable_t pagetable) {
-  printf("page table %p\n", pagetable);
+  printf("page table %p\n", (void *)pagetable);
   // Start recursion at the top level (level 2).
   vmprint_rec(pagetable, 2, 0);
 }
