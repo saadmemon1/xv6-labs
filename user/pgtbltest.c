@@ -136,20 +136,24 @@ superpg_fork()
   testname = "superpg_fork";
   
   char *end = sbrk(SZ);
+  printf("superpg_fork: after sbrk\n");
   if (end == 0 || end == SBRK_ERROR)
     err("sbrk failed");
 
   // check if parent has super pages
   supercheck(end);
+  printf("superpg_fork: after supercheck parent\n");
   if((pid = fork()) < 0) {
     err("fork");
   } else if(pid == 0) {
     // check if child's address space has super pages
     supercheck(end);
+    printf("superpg_fork child: after supercheck\n");
     exit(0);
   } else {
     int status;
     wait(&status);
+    printf("superpg_fork parent: after first wait status=%d\n", status);
     if (status != 0) {
       exit(0);
     }
@@ -157,15 +161,18 @@ superpg_fork()
 
   // free super pages
   sbrk(-SZ);
+  printf("superpg_fork: after shrink\n");
   if((pid = fork()) < 0) {
     err("fork");
   } else if(pid == 0) {
     // reference freed memory; this should result in page fault and
     // the kernel should kill the child.
     * (end + 1) = '9'; 
+    printf("superpg_fork child: write succeeded?\n");
   } else {
     int status;
     wait(&status);
+    printf("superpg_fork parent: after second wait status=%d\n", status);
     if (status == 0) {
       err("child was able to reference free memory\n");
       exit(1);

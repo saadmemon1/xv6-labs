@@ -63,9 +63,13 @@ void            itrunc(struct inode*);
 void            ireclaim(int);
 
 // kalloc.c
-void*           kalloc(void);
-void            kfree(void *);
 void            kinit(void);
+void            kfree(void *);
+void*           kalloc(void);
+#ifdef LAB_PGTBL
+void*           superalloc(void);
+void            superfree(void *);
+#endif
 
 // log.c
 void            initlog(int, struct superblock*);
@@ -189,6 +193,8 @@ uint64          vmfault(pagetable_t, uint64, int);
 void            vmprint(pagetable_t);
 #endif
 #ifdef LAB_PGTBL
+int             mappages_super(pagetable_t, uint64, uint64, int);
+pte_t*          walk_with_level(pagetable_t, uint64, int, int *);
 pte_t*          pgpte(pagetable_t, uint64);
 #endif
 
