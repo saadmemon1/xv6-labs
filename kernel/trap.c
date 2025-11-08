@@ -81,8 +81,29 @@ usertrap(void)
     kexit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2) {
+    struct proc *p = myproc();
+    
+    // Handle alarm if configured and not already in handler
+    if(p->alarm_interval > 0 && !p->alarm_in_progress) {
+      p->alarm_ticks--;
+      
+      if(p->alarm_ticks <= 0) {
+        // Time to call the handler
+        p->alarm_ticks = p->alarm_interval;  // Reset counter
+        
+        // Save the current trapframe
+        memmove(p->alarm_trapframe, p->trapframe, sizeof(struct trapframe));
+        
+        // Set up to call the handler
+        p->trapframe->epc = (uint64)p->alarm_handler;
+        
+        // Mark that we're in the handler
+        p->alarm_in_progress = 1;
+      }
+    }
     yield();
+  }
 
   prepare_return();
 
