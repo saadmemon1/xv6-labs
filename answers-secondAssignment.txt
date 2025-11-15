@@ -1,0 +1,13 @@
+2. Is there a way to eliminate the special TRAPFRAME page mapping in every user address space? For example, could uservec be modified to simply push the 32 user registers onto the kernel stack, or store them in the proc structure?
+
+If we save 32 user registers on kernel stack in uservec, we need to first understand that we need the stack pointer (address of kernel stack) which is saved in trapframe (p->trapframe->kernel_sp). uservec needs to save the user registers to get a register to work with (like a0), so it can load the address of the trapframe, so it can finally get the address of the kernel stack.
+We can't save the registers to the kernel stack, because we need to use the registers to find out where the kernel stack is.
+
+Proc is a kernel structure so it's in the kernel memory, and when we are in user mode switching to supervisor mode, we are in user page table (uservec), which does not have the kernel memory mapped to it thus making proc inacessible.
+
+
+
+3. Could xv6 be modified to eliminate the special TRAMPOLINE page mapping?
+
+When we are entering supervisor mode (due to traps etc), we need stvec to point to a valid virtual address. If it points to kernel address, page fault will occur since we would have the user page table active.
+In uservec and userret, we switch page tables and trampoline needs to map to exact same virtual address in kernel page table and every user page table so that CPU can work properly. 
