@@ -16,8 +16,8 @@ xv6-labs-2025/
 ├── user/
 │   ├── mlfqtest.c      # Test program
 │   └── user.h          # Syscall declarations
-├── DESIGN_DOCUMENT.md  # Design specification
-├── FINAL_REPORT.md     # Implementation report
+├── MLFQ Design Document.pdf  # Design specification
+├── MLFQ Final Report.pdf     # Implementation report
 └── README.md           # This file
 ```
 
@@ -169,7 +169,7 @@ yield():
 ## Authors
 
 Saad Inam - 29068
-Hassan Jabbar
+Hassan Jabbar - 29060
 
 ## License
 
