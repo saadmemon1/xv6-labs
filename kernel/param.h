@@ -13,6 +13,14 @@
 #define MAXOPBLOCKS  10  // max # of blocks any FS op writes
 #define LOGBLOCKS    (MAXOPBLOCKS*3)  // max data blocks in on-disk log
 #define NBUF         (MAXOPBLOCKS*3)  // size of disk block cache
+
+// MLFQ Scheduler constants
+#define MLFQ_LEVELS  4        // Number of priority levels
+#define L0     4        // Time quantum level 0
+#define L1     8        // Time quantum level 1
+#define L2     16       // Time quantum level 2
+#define L3     32       // Time quantum level 3
+#define BOOST_INTERVAL  200   // Ticks between priority boosts
 #ifdef LAB_FS
 #define FSSIZE       200000  // size of file system in blocks
 #else

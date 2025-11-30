@@ -16,6 +16,8 @@ void kernelvec();
 
 extern int devintr();
 
+static uint boost_counter = 0; // Global counter for priority boosting
+
 void
 trapinit(void)
 {
@@ -81,8 +83,15 @@ usertrap(void)
     kexit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2) {
+    p->ticks_used++;
+    boost_counter++;
+    if(boost_counter >= BOOST_INTERVAL) {
+      boost_counter = 0;
+      mlfq_boost();
+    }
     yield();
+  }
 
   prepare_return();
 

@@ -81,6 +81,15 @@ struct trapframe {
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+struct procinfo {
+  int pid;
+  int queue_level;              // (0-3)
+  int ticks_used;
+  int quantum;                  // Time quantum for current queue level
+  char name[16];                // Process name
+  enum procstate state;         // Process state
+};
+
 // Per-process state
 struct proc {
   struct spinlock lock;
@@ -91,6 +100,12 @@ struct proc {
   int killed;                  // If non-zero, have been killed
   int xstate;                  // Exit status to be returned to parent's wait
   int pid;                     // Process ID
+
+  // MLFQ Scheduler fields
+  int queue_level;             // (0-3)
+  int ticks_used;
+  struct proc *next_proc;      // Pointer to next process in queue (linked list)
+  int quantum;                 // Time quantum for current queue level
 
   // wait_lock must be held when using this:
   struct proc *parent;         // Parent process
